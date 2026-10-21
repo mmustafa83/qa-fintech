@@ -1,0 +1,1403 @@
+{
+  "info": {
+    "_postman_id": "e15b4601-1669-4362-8450-12a583770a81",
+    "name": "Payments QA",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json",
+    "_exporter_id": "6964406"
+  },
+  "item": [
+    {
+      "name": "00-setup",
+      "item": [
+        {
+          "name": "verifyCustomerExists",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Status is 200\", () => pm.response.to.have.status(200));\r\npm.test(\"Maha's email exists\", () => {\r\n  const emails = pm.response.json().data.map(c => c.email);\r\n    pm.expect(emails).to.include(pm.environment.get(\"my_email\"));\r\n});"
+                ]
+              }
+            }
+          ],
+          "protocolProfileBehavior": {
+            "disableCookies": false,
+            "followRedirects": true,
+            "protocolVersion": "auto",
+            "strictSSL": false
+          },
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{secret_key}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/customers?limit=3",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "customers"
+              ],
+              "query": [
+                {
+                  "key": "limit",
+                  "value": "3"
+                }
+              ]
+            }
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "01-card-lifecycle",
+      "item": [
+        {
+          "name": "Place an authorization succeeds",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "const b = pm.response.json();\r\npm.environment.set(\"pi_id\",b.id); //save payment id as env variable\r\npm.test(\"held, not captured\",()=>pm.expect(b.status).to.eql(\"requires_capture\"));// state machine lifecycle status\r\npm.test(\"held  is 65.00\", () => pm.expect(b.amount_capturable).to.eql(6500));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [],
+            "body": {
+              "mode": "urlencoded",
+              "urlencoded": [
+                {
+                  "key": "amount",
+                  "value": "6500"
+                },
+                {
+                  "key": "currency",
+                  "value": "eur"
+                },
+                {
+                  "key": "capture_method",
+                  "value": "manual",
+                  "description": "manual = hold only. don't capture yet"
+                },
+                {
+                  "key": "payment_method",
+                  "value": "pm_card_visa",
+                  "description": "stripe's ready made test card"
+                },
+                {
+                  "key": "allowed_payment_method_types[]",
+                  "value": "card"
+                },
+                {
+                  "key": "confirm",
+                  "value": "true"
+                }
+              ]
+            },
+            "url": {
+              "raw": "{{base_url}}/payment_intents",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "payment_intents"
+              ]
+            },
+            "description": "1. create a payment request of type manual (authorize only). the server (Y's server) uses tge secret key to place a hold\n    \n2. the server then hands off the client secret to the user's app over TLS encrypted connection while the server only keeps the payment ID in the DB\n    \n3. then the user enters the card and does the 3ds if needed on the user's app. this uses the publishable key (static merchant app key) and the client secret from the user's app memory (the generated key needed fot this one payment)\n    \n4. stripe then sends the result to the server using a webhook or a lookup with the secret key and payment ID"
+          },
+          "response": [
+            {
+              "name": "Place an authorization succeeds",
+              "originalRequest": {
+                "method": "POST",
+                "header": [],
+                "body": {
+                  "mode": "urlencoded",
+                  "urlencoded": [
+                    {
+                      "key": "amount",
+                      "value": "6500"
+                    },
+                    {
+                      "key": "currency",
+                      "value": "eur"
+                    },
+                    {
+                      "key": "capture_method",
+                      "value": "manual",
+                      "description": "manual = hold only. don't capture yet"
+                    },
+                    {
+                      "key": "payment_method",
+                      "value": "pm_card_visa",
+                      "description": "stripe's ready made test card"
+                    },
+                    {
+                      "key": "allowed_payment_method_types[]",
+                      "value": "card"
+                    },
+                    {
+                      "key": "confirm",
+                      "value": "true"
+                    }
+                  ]
+                },
+                "url": {
+                  "raw": "{{base_url}}/payment_intents",
+                  "host": [
+                    "{{base_url}}"
+                  ],
+                  "path": [
+                    "payment_intents"
+                  ]
+                }
+              },
+              "status": "OK",
+              "code": 200,
+              "_postman_previewlanguage": "json",
+              "header": [
+                {
+                  "key": ":status",
+                  "value": "200"
+                },
+                {
+                  "key": "server",
+                  "value": "nginx"
+                },
+                {
+                  "key": "date",
+                  "value": "Tue, 20 Oct 2026 21:23:20 GMT"
+                },
+                {
+                  "key": "content-type",
+                  "value": "application/json"
+                },
+                {
+                  "key": "content-length",
+                  "value": "1585"
+                },
+                {
+                  "key": "access-control-allow-credentials",
+                  "value": "true"
+                },
+                {
+                  "key": "access-control-allow-methods",
+                  "value": "GET, HEAD, PUT, PATCH, POST, DELETE"
+                },
+                {
+                  "key": "access-control-allow-origin",
+                  "value": "*"
+                },
+                {
+                  "key": "access-control-expose-headers",
+                  "value": "Request-Id, Stripe-Manage-Version, Stripe-Should-Retry, X-Stripe-External-Auth-Required, X-Stripe-Privileged-Session-Required"
+                },
+                {
+                  "key": "access-control-max-age",
+                  "value": "300"
+                },
+                {
+                  "key": "cache-control",
+                  "value": "no-cache, no-store"
+                },
+                {
+                  "key": "content-security-policy",
+                  "value": "base-uri 'none'; default-src 'none'; form-action 'none'; frame-ancestors 'none'; img-src 'self'; script-src 'self' 'report-sample'; style-src 'self'; worker-src 'none'; upgrade-insecure-requests; report-uri https://q.stripe.com/csp-violation?q=NlOPe6YzlWmVWQi4sjtBYCh1YaUJ46hdxMRIU3U0RpFgbYZr_wBlrgKzcUXm_UMT64yTyDx3dryzIyQ3; report-to csp"
+                },
+                {
+                  "key": "idempotency-key",
+                  "value": "8515e0d4-33c4-492d-84a1-e3c1e6f21e11"
+                },
+                {
+                  "key": "original-request",
+                  "value": "req_LZFKlk0Ha8Nrlf"
+                },
+                {
+                  "key": "report-to",
+                  "value": "{\"group\":\"csp\",\"max_age\":8640,\"endpoints\":[{\"url\":\"https://q.stripe.com/csp-report-v2?q=NlOPe6YzlWmVWQi4sjtBYCh1YaUJ46hdxMRIU3U0RpFgbYZr_wBlrgKzcUXm_UMT64yTyDx3dryzIyQ3&t=1\"}],\"include_subdomains\":true}"
+                },
+                {
+                  "key": "reporting-endpoints",
+                  "value": "csp=\"https://q.stripe.com/csp-report-v2?q=NlOPe6YzlWmVWQi4sjtBYCh1YaUJ46hdxMRIU3U0RpFgbYZr_wBlrgKzcUXm_UMT64yTyDx3dryzIyQ3&t=1\""
+                },
+                {
+                  "key": "request-id",
+                  "value": "req_LZFKlk0Ha8Nrlf"
+                },
+                {
+                  "key": "stripe-should-retry",
+                  "value": "false"
+                },
+                {
+                  "key": "stripe-version",
+                  "value": "2026-09-30.endive"
+                },
+                {
+                  "key": "vary",
+                  "value": "Origin"
+                },
+                {
+                  "key": "x-stripe-priority-routing-enabled",
+                  "value": "true"
+                },
+                {
+                  "key": "x-stripe-routing-context-priority-tier",
+                  "value": "api-testmode"
+                },
+                {
+                  "key": "x-wc",
+                  "value": "3c3"
+                },
+                {
+                  "key": "strict-transport-security",
+                  "value": "max-age=63072000; includeSubDomains; preload"
+                }
+              ],
+              "cookie": [],
+              "body": "{\n  \"id\": \"pi_3USkV9D9Ww5fjIs90J0OtAG7\", //payment transation ID not a secret. like the order number, saved on the app's db. used for reconcilation. sent from server to app through TLS encrypted connection\n  \"object\": \"payment_intent\",\n  \"allowed_payment_method_types\": [\n    \"card\"\n  ],\n  \"amount\": 6500,//amound requested (in minor units not 65.00 for 65 euros. it is 6500 for 6500 cents)\n  \"amount_capturable\": 6500,//amount that can be captured (must be equal to (zero debt) or less that amount(debt subtracted))\n  \"amount_details\": {\n    \"tip\": {}\n  },\n  \"amount_received\": 0,//how much was actually captured\n  \"application\": null,\n  \"application_fee_amount\": null,\n  \"automatic_payment_methods\": null,\n  \"canceled_at\": null,\n  \"cancellation_reason\": null,\n  \"capture_method\": \"manual\",//hold first (authorize vs capture)\n  \"client_secret\": \"pi_3USkV9D9Ww5fjIs90J0OtAG7_secret_REDACTED\",//this is the key of the app's frontend checkout screen to let only this customer finish this one payment. it should never be logged as is. only saved in the app's memory and never logged in DB or log stack. if leaked, this is a bug cause the attacker would be able to view or finish that one payment\n  \"confirmation_method\": \"automatic\",\n  \"created\": 1792531399,//unix timestamp of transation (elapsed seconds since 1 Jan 1970)\n  \"currency\": \"eur\",\n  \"customer\": null,\n  \"customer_account\": null,\n  \"description\": null,\n  \"excluded_payment_method_types\": null,\n  \"last_payment_error\": null,\n  \"latest_charge\": \"ch_3USkV9D9Ww5fjIs90zvaX4LP\",// the card network transaction key\n  \"livemode\": false,// false for sandbox, true for real money\n  \"managed_payments\": {\n    \"enabled\": false\n  },\n  \"metadata\": {},\n  \"next_action\": null,\n  \"on_behalf_of\": null,\n  \"payment_method\": \"pm_1USkV9D9Ww5fjIs9eoH5kARi\",// pm_ means a token for the used card. the card number is never saved.\n  \"payment_method_configuration_details\": null,\n  \"payment_method_options\": {\n    \"card\": {\n      \"installments\": null,\n      \"mandate_options\": null,\n      \"network\": null,\n      \"request_three_d_secure\": \"automatic\"\n    }\n  },\n  \"payment_method_types\": [\n    \"card\"\n  ],\n  \"payment_record\": null,\n  \"processing\": null,\n  \"receipt_email\": null,\n  \"review\": null,\n  \"setup_future_usage\": null,\n  \"shared_payment_granted_token\": null,\n  \"shipping\": null,\n  \"source\": null,\n  \"statement_descriptor\": null,\n  \"statement_descriptor_suffix\": null,\n  \"status\": \"requires_capture\",\n  \"transfer_data\": null,\n  \"transfer_group\": null\n}"
+            }
+          ]
+        },
+        {
+          "name": "Capture more than authorized fails",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "const res = pm.response;\r\nconst body = res.json();\r\npm.test(\"4xx (client error) not 5xx (server error/crash)\",()=>{\r\n    pm.expect(res.code).to.be.within(400,499)\r\n    });\r\npm.test(\"error code and message\",()=>{\r\n    pm.expect(body.error).to.exist;\r\n    pm.expect(body.error.code).to.be.a(\"string\");\r\n    pm.expect(body.error.message).to.be.a(\"string\").and.not.empty;\r\n    });\r\npm.test(\"traceable operation with id\",()=>{\r\n    pm.expect(res.headers.get(\"Request-id\")).to.match(/^req_/);\r\n    });\r\npm.test(\"no secret key communicated\",()=>{\r\n    pm.expect(res.text()).to.not.include(pm.environment.get(\"secret_key\"));\r\n});\r\npm.test(\"exact error code\", () => pm.expect(body.error.code).to.eql(\"amount_too_large\"));\r\npm.test(\"state still held\", () => pm.expect(body.error.payment_intent.status).to.eql(\"requires_capture\"));\r\npm.test(\"65.00 still held\", () => pm.expect(body.error.payment_intent.amount_capturable).to.eql(6500));\r\npm.test(\"nothing charged\", () => pm.expect(body.error.payment_intent.amount_received).to.eql(0));\r\n"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [],
+            "body": {
+              "mode": "urlencoded",
+              "urlencoded": [
+                {
+                  "key": "amount",
+                  "value": "7000"
+                }
+              ]
+            },
+            "url": {
+              "raw": "{{base_url}}/payment_intents/{{pi_id}}/capture",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "payment_intents",
+                "{{pi_id}}",
+                "capture"
+              ]
+            },
+            "description": "Attempting to capture more than the held amount fails gracefully:\n\n- logged as a bad request (4xx) not a crash (5xx)\n    \n- has error code that points to the problematic field\n    \n- has no leaked secret ket\n    \n- nothing captured, state still authorized, actual amount can still be captured\n    \n- has request id for traceability"
+          },
+          "response": [
+            {
+              "name": "Capture more than authorized fails",
+              "originalRequest": {
+                "method": "POST",
+                "header": [],
+                "body": {
+                  "mode": "urlencoded",
+                  "urlencoded": [
+                    {
+                      "key": "amount",
+                      "value": "7000"
+                    }
+                  ]
+                },
+                "url": {
+                  "raw": "{{base_url}}/payment_intents/{{pi_id}}/capture",
+                  "host": [
+                    "{{base_url}}"
+                  ],
+                  "path": [
+                    "payment_intents",
+                    "{{pi_id}}",
+                    "capture"
+                  ]
+                }
+              },
+              "_postman_previewlanguage": "json",
+              "header": [
+                {
+                  "key": ":status",
+                  "value": "400"
+                },
+                {
+                  "key": "server",
+                  "value": "nginx"
+                },
+                {
+                  "key": "date",
+                  "value": "Tue, 20 Oct 2026 23:08:46 GMT"
+                },
+                {
+                  "key": "content-type",
+                  "value": "application/json"
+                },
+                {
+                  "key": "content-length",
+                  "value": "2344"
+                },
+                {
+                  "key": "access-control-allow-credentials",
+                  "value": "true"
+                },
+                {
+                  "key": "access-control-allow-methods",
+                  "value": "GET, HEAD, PUT, PATCH, POST, DELETE"
+                },
+                {
+                  "key": "access-control-allow-origin",
+                  "value": "*"
+                },
+                {
+                  "key": "access-control-expose-headers",
+                  "value": "Request-Id, Stripe-Manage-Version, Stripe-Should-Retry, X-Stripe-External-Auth-Required, X-Stripe-Privileged-Session-Required"
+                },
+                {
+                  "key": "access-control-max-age",
+                  "value": "300"
+                },
+                {
+                  "key": "cache-control",
+                  "value": "no-cache, no-store"
+                },
+                {
+                  "key": "content-security-policy",
+                  "value": "base-uri 'none'; default-src 'none'; form-action 'none'; frame-ancestors 'none'; img-src 'self'; script-src 'self' 'report-sample'; style-src 'self'; worker-src 'none'; upgrade-insecure-requests; report-uri https://q.stripe.com/csp-violation?q=6MIZPzwb2FDIXT8RCexKeUoxmfrech3amcRGVZtNK9L6Nv0GuyRgZ2ndoDud1cG6uFGtSpVmc6mKqRDF; report-to csp"
+                },
+                {
+                  "key": "idempotency-key",
+                  "value": "199fa52a-bad2-4a56-89ca-1593d0fd10f9"
+                },
+                {
+                  "key": "original-request",
+                  "value": "req_jSyyxuvO9qmwCL"
+                },
+                {
+                  "key": "report-to",
+                  "value": "{\"group\":\"csp\",\"max_age\":8640,\"endpoints\":[{\"url\":\"https://q.stripe.com/csp-report-v2?q=6MIZPzwb2FDIXT8RCexKeUoxmfrech3amcRGVZtNK9L6Nv0GuyRgZ2ndoDud1cG6uFGtSpVmc6mKqRDF&t=1\"}],\"include_subdomains\":true}"
+                },
+                {
+                  "key": "reporting-endpoints",
+                  "value": "csp=\"https://q.stripe.com/csp-report-v2?q=6MIZPzwb2FDIXT8RCexKeUoxmfrech3amcRGVZtNK9L6Nv0GuyRgZ2ndoDud1cG6uFGtSpVmc6mKqRDF&t=1\""
+                },
+                {
+                  "key": "request-id",
+                  "value": "req_jSyyxuvO9qmwCL"
+                },
+                {
+                  "key": "stripe-should-retry",
+                  "value": "false"
+                },
+                {
+                  "key": "stripe-version",
+                  "value": "2026-09-30.endive"
+                },
+                {
+                  "key": "vary",
+                  "value": "Origin"
+                },
+                {
+                  "key": "x-stripe-priority-routing-enabled",
+                  "value": "true"
+                },
+                {
+                  "key": "x-stripe-routing-context-priority-tier",
+                  "value": "api-testmode"
+                },
+                {
+                  "key": "x-wc",
+                  "value": "3c3"
+                },
+                {
+                  "key": "strict-transport-security",
+                  "value": "max-age=63072000; includeSubDomains; preload"
+                }
+              ],
+              "cookie": [],
+              "body": "{\n  \"error\": {\n    \"code\": \"amount_too_large\",\n    \"doc_url\": \"https://stripe.com/docs/error-codes/amount-too-large\",\n    \"message\": \"The payment could not be captured because the requested capture amount is greater than the amount you can capture for this charge. Contact us via https://support.stripe.com/contact/ for help. (This is an unclaimed Stripe sandbox. Dashboard links in this error message will not work until the sandbox is claimed.)\",\n    \"payment_intent\": {\n      \"id\": \"pi_3USkV9D9Ww5fjIs90J0OtAG7\",\n      \"object\": \"payment_intent\",\n      \"allowed_payment_method_types\": [\n        \"card\"\n      ],\n      \"amount\": 6500,\n      \"amount_capturable\": 6500,\n      \"amount_details\": {\n        \"tip\": {}\n      },\n      \"amount_received\": 0,\n      \"application\": null,\n      \"application_fee_amount\": null,\n      \"automatic_payment_methods\": null,\n      \"canceled_at\": null,\n      \"cancellation_reason\": null,\n      \"capture_method\": \"manual\",\n      \"client_secret\": \"pi_3USkV9D9Ww5fjIs90J0OtAG7_secret_REDACTED\",\n      \"confirmation_method\": \"automatic\",\n      \"created\": 1792531399,\n      \"currency\": \"eur\",\n      \"customer\": null,\n      \"customer_account\": null,\n      \"description\": null,\n      \"excluded_payment_method_types\": null,\n      \"last_payment_error\": null,\n      \"latest_charge\": \"ch_3USkV9D9Ww5fjIs90zvaX4LP\",\n      \"livemode\": false,\n      \"managed_payments\": {\n        \"enabled\": false\n      },\n      \"metadata\": {},\n      \"next_action\": null,\n      \"on_behalf_of\": null,\n      \"payment_method\": \"pm_1USkV9D9Ww5fjIs9eoH5kARi\",\n      \"payment_method_configuration_details\": null,\n      \"payment_method_options\": {\n        \"card\": {\n          \"installments\": null,\n          \"mandate_options\": null,\n          \"network\": null,\n          \"request_three_d_secure\": \"automatic\"\n        }\n      },\n      \"payment_method_types\": [\n        \"card\"\n      ],\n      \"payment_record\": null,\n      \"processing\": null,\n      \"receipt_email\": null,\n      \"review\": null,\n      \"setup_future_usage\": null,\n      \"shared_payment_granted_token\": null,\n      \"shipping\": null,\n      \"source\": null,\n      \"statement_descriptor\": null,\n      \"statement_descriptor_suffix\": null,\n      \"status\": \"requires_capture\",\n      \"transfer_data\": null,\n      \"transfer_group\": null\n    },\n    \"type\": \"invalid_request_error\"\n  }\n}"
+            }
+          ]
+        },
+        {
+          "name": "Partial capture succeeds (cheaper than authorized)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "const res = pm.response;\r\nconst body = res.json();\r\npm.test(\"request status 200\",()=>{\r\n    pm.expect(res.to.have.status(200));\r\n    });\r\npm.test(\"traceable operation with id\",()=>{\r\n    pm.expect(res.headers.get(\"Request-id\")).to.match(/^req_/);\r\n    });\r\npm.test(\"no secret key communicated\",()=>{\r\n    pm.expect(res.text()).to.not.include(pm.environment.get(\"secret_key\"));\r\n});\r\npm.test(\"state changed to succeeded\", () => pm.expect(body.status).to.eql(\"succeeded\"));\r\npm.test(\"nothing still held\", () => pm.expect(body.amount_capturable).to.eql(0));\r\npm.test(\"correct amount charged\", () => pm.expect(body.amount_received).to.eql(6000));\r\n"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [],
+            "body": {
+              "mode": "urlencoded",
+              "urlencoded": [
+                {
+                  "key": "amount",
+                  "value": "6000"
+                }
+              ]
+            },
+            "url": {
+              "raw": "{{base_url}}/payment_intents/{{pi_id}}/capture",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "payment_intents",
+                "{{pi_id}}",
+                "capture"
+              ]
+            },
+            "description": "Attempting to capture less than the held amount succeeds:\n\n- remaining held amound gets released\n    \n- paid amount is deducted from customer's balance and is traceble"
+          },
+          "response": [
+            {
+              "name": "Partial capture succeeds (cheaper than authorized)",
+              "originalRequest": {
+                "method": "POST",
+                "header": [],
+                "body": {
+                  "mode": "urlencoded",
+                  "urlencoded": [
+                    {
+                      "key": "amount",
+                      "value": "6000"
+                    }
+                  ]
+                },
+                "url": {
+                  "raw": "{{base_url}}/payment_intents/{{pi_id}}/capture",
+                  "host": [
+                    "{{base_url}}"
+                  ],
+                  "path": [
+                    "payment_intents",
+                    "{{pi_id}}",
+                    "capture"
+                  ]
+                }
+              },
+              "_postman_previewlanguage": "json",
+              "header": [
+                {
+                  "key": ":status",
+                  "value": "200"
+                },
+                {
+                  "key": "server",
+                  "value": "nginx"
+                },
+                {
+                  "key": "date",
+                  "value": "Tue, 20 Oct 2026 23:52:46 GMT"
+                },
+                {
+                  "key": "content-type",
+                  "value": "application/json"
+                },
+                {
+                  "key": "content-length",
+                  "value": "1578"
+                },
+                {
+                  "key": "access-control-allow-credentials",
+                  "value": "true"
+                },
+                {
+                  "key": "access-control-allow-methods",
+                  "value": "GET, HEAD, PUT, PATCH, POST, DELETE"
+                },
+                {
+                  "key": "access-control-allow-origin",
+                  "value": "*"
+                },
+                {
+                  "key": "access-control-expose-headers",
+                  "value": "Request-Id, Stripe-Manage-Version, Stripe-Should-Retry, X-Stripe-External-Auth-Required, X-Stripe-Privileged-Session-Required"
+                },
+                {
+                  "key": "access-control-max-age",
+                  "value": "300"
+                },
+                {
+                  "key": "cache-control",
+                  "value": "no-cache, no-store"
+                },
+                {
+                  "key": "content-security-policy",
+                  "value": "base-uri 'none'; default-src 'none'; form-action 'none'; frame-ancestors 'none'; img-src 'self'; script-src 'self' 'report-sample'; style-src 'self'; worker-src 'none'; upgrade-insecure-requests; report-uri https://q.stripe.com/csp-violation?q=W5B-wUNIUJ67RuHZ1IJiQT8dbxdTJuVZAmUPsHPEeLkuTwZXMr89zVDvb2Vtnk4b9n1ZDVVcP3otJWzW; report-to csp"
+                },
+                {
+                  "key": "idempotency-key",
+                  "value": "23d9f2c5-16f9-440e-af3a-7cb9f4ded21b"
+                },
+                {
+                  "key": "original-request",
+                  "value": "req_jMNgoVJLQRNHLk"
+                },
+                {
+                  "key": "report-to",
+                  "value": "{\"group\":\"csp\",\"max_age\":8640,\"endpoints\":[{\"url\":\"https://q.stripe.com/csp-report-v2?q=W5B-wUNIUJ67RuHZ1IJiQT8dbxdTJuVZAmUPsHPEeLkuTwZXMr89zVDvb2Vtnk4b9n1ZDVVcP3otJWzW&t=1\"}],\"include_subdomains\":true}"
+                },
+                {
+                  "key": "reporting-endpoints",
+                  "value": "csp=\"https://q.stripe.com/csp-report-v2?q=W5B-wUNIUJ67RuHZ1IJiQT8dbxdTJuVZAmUPsHPEeLkuTwZXMr89zVDvb2Vtnk4b9n1ZDVVcP3otJWzW&t=1\""
+                },
+                {
+                  "key": "request-id",
+                  "value": "req_jMNgoVJLQRNHLk"
+                },
+                {
+                  "key": "stripe-should-retry",
+                  "value": "false"
+                },
+                {
+                  "key": "stripe-version",
+                  "value": "2026-09-30.endive"
+                },
+                {
+                  "key": "vary",
+                  "value": "Origin"
+                },
+                {
+                  "key": "x-stripe-priority-routing-enabled",
+                  "value": "true"
+                },
+                {
+                  "key": "x-stripe-routing-context-priority-tier",
+                  "value": "api-testmode"
+                },
+                {
+                  "key": "x-wc",
+                  "value": "3c3"
+                },
+                {
+                  "key": "strict-transport-security",
+                  "value": "max-age=63072000; includeSubDomains; preload"
+                }
+              ],
+              "cookie": [],
+              "body": "{\n  \"id\": \"pi_3USmphD9Ww5fjIs91fwjIkkl\",\n  \"object\": \"payment_intent\",\n  \"allowed_payment_method_types\": [\n    \"card\"\n  ],\n  \"amount\": 6500,\n  \"amount_capturable\": 0,\n  \"amount_details\": {\n    \"tip\": {}\n  },\n  \"amount_received\": 6000,\n  \"application\": null,\n  \"application_fee_amount\": null,\n  \"automatic_payment_methods\": null,\n  \"canceled_at\": null,\n  \"cancellation_reason\": null,\n  \"capture_method\": \"manual\",\n  \"client_secret\": \"pi_3USmphD9Ww5fjIs91fwjIkkl_secret_REDACTED\",\n  \"confirmation_method\": \"automatic\",\n  \"created\": 1792540361,\n  \"currency\": \"eur\",\n  \"customer\": null,\n  \"customer_account\": null,\n  \"description\": null,\n  \"excluded_payment_method_types\": null,\n  \"last_payment_error\": null,\n  \"latest_charge\": \"ch_3USmphD9Ww5fjIs91JYOi6kr\",\n  \"livemode\": false,\n  \"managed_payments\": {\n    \"enabled\": false\n  },\n  \"metadata\": {},\n  \"next_action\": null,\n  \"on_behalf_of\": null,\n  \"payment_method\": \"pm_1USmphD9Ww5fjIs9Cm15M4bK\",\n  \"payment_method_configuration_details\": null,\n  \"payment_method_options\": {\n    \"card\": {\n      \"installments\": null,\n      \"mandate_options\": null,\n      \"network\": null,\n      \"request_three_d_secure\": \"automatic\"\n    }\n  },\n  \"payment_method_types\": [\n    \"card\"\n  ],\n  \"payment_record\": null,\n  \"processing\": null,\n  \"receipt_email\": null,\n  \"review\": null,\n  \"setup_future_usage\": null,\n  \"shared_payment_granted_token\": null,\n  \"shipping\": null,\n  \"source\": null,\n  \"statement_descriptor\": null,\n  \"statement_descriptor_suffix\": null,\n  \"status\": \"succeeded\",\n  \"transfer_data\": null,\n  \"transfer_group\": null\n}"
+            },
+            {
+              "name": "same payment id cannot be captured twice",
+              "originalRequest": {
+                "method": "POST",
+                "header": [],
+                "body": {
+                  "mode": "urlencoded",
+                  "urlencoded": [
+                    {
+                      "key": "amount",
+                      "value": "6000"
+                    }
+                  ]
+                },
+                "url": {
+                  "raw": "{{base_url}}/payment_intents/{{pi_id}}/capture",
+                  "host": [
+                    "{{base_url}}"
+                  ],
+                  "path": [
+                    "payment_intents",
+                    "{{pi_id}}",
+                    "capture"
+                  ]
+                }
+              },
+              "status": "OK",
+              "code": 200,
+              "_postman_previewlanguage": "json",
+              "header": [
+                {
+                  "key": ":status",
+                  "value": "400"
+                },
+                {
+                  "key": "server",
+                  "value": "nginx"
+                },
+                {
+                  "key": "date",
+                  "value": "Tue, 20 Oct 2026 23:54:43 GMT"
+                },
+                {
+                  "key": "content-type",
+                  "value": "application/json"
+                },
+                {
+                  "key": "content-length",
+                  "value": "2306"
+                },
+                {
+                  "key": "access-control-allow-credentials",
+                  "value": "true"
+                },
+                {
+                  "key": "access-control-allow-methods",
+                  "value": "GET, HEAD, PUT, PATCH, POST, DELETE"
+                },
+                {
+                  "key": "access-control-allow-origin",
+                  "value": "*"
+                },
+                {
+                  "key": "access-control-expose-headers",
+                  "value": "Request-Id, Stripe-Manage-Version, Stripe-Should-Retry, X-Stripe-External-Auth-Required, X-Stripe-Privileged-Session-Required"
+                },
+                {
+                  "key": "access-control-max-age",
+                  "value": "300"
+                },
+                {
+                  "key": "cache-control",
+                  "value": "no-cache, no-store"
+                },
+                {
+                  "key": "content-security-policy",
+                  "value": "base-uri 'none'; default-src 'none'; form-action 'none'; frame-ancestors 'none'; img-src 'self'; script-src 'self' 'report-sample'; style-src 'self'; worker-src 'none'; upgrade-insecure-requests; report-uri https://q.stripe.com/csp-violation?q=1BPhpFsys2ottqO4v6pjRhDw1F0PXxUtN7u-Sy9Tiou6ehZgLTEXgnnmrTC2oXUei1cNUsaHAnpUztO8; report-to csp"
+                },
+                {
+                  "key": "idempotency-key",
+                  "value": "b2d5a20a-eb86-4001-81eb-8e820e760cb8"
+                },
+                {
+                  "key": "original-request",
+                  "value": "req_xsKnCgTDaVvOxF"
+                },
+                {
+                  "key": "report-to",
+                  "value": "{\"group\":\"csp\",\"max_age\":8640,\"endpoints\":[{\"url\":\"https://q.stripe.com/csp-report-v2?q=1BPhpFsys2ottqO4v6pjRhDw1F0PXxUtN7u-Sy9Tiou6ehZgLTEXgnnmrTC2oXUei1cNUsaHAnpUztO8&t=1\"}],\"include_subdomains\":true}"
+                },
+                {
+                  "key": "reporting-endpoints",
+                  "value": "csp=\"https://q.stripe.com/csp-report-v2?q=1BPhpFsys2ottqO4v6pjRhDw1F0PXxUtN7u-Sy9Tiou6ehZgLTEXgnnmrTC2oXUei1cNUsaHAnpUztO8&t=1\""
+                },
+                {
+                  "key": "request-id",
+                  "value": "req_xsKnCgTDaVvOxF"
+                },
+                {
+                  "key": "stripe-version",
+                  "value": "2026-09-30.endive"
+                },
+                {
+                  "key": "vary",
+                  "value": "Origin"
+                },
+                {
+                  "key": "x-stripe-priority-routing-enabled",
+                  "value": "true"
+                },
+                {
+                  "key": "x-stripe-routing-context-priority-tier",
+                  "value": "api-testmode"
+                },
+                {
+                  "key": "x-wc",
+                  "value": "3c3"
+                },
+                {
+                  "key": "strict-transport-security",
+                  "value": "max-age=63072000; includeSubDomains; preload"
+                }
+              ],
+              "cookie": [],
+              "body": "{\n  \"error\": {\n    \"code\": \"payment_intent_unexpected_state\",\n    \"doc_url\": \"https://stripe.com/docs/error-codes/payment-intent-unexpected-state\",\n    \"message\": \"The remaining amount on this PaymentIntent could not be captured because the remainder of the authorized amount has been released. (This is an unclaimed Stripe sandbox. Dashboard links in this error message will not work until the sandbox is claimed.)\",\n    \"payment_intent\": {\n      \"id\": \"pi_3USmphD9Ww5fjIs91fwjIkkl\",\n      \"object\": \"payment_intent\",\n      \"allowed_payment_method_types\": [\n        \"card\"\n      ],\n      \"amount\": 6500,\n      \"amount_capturable\": 0,\n      \"amount_details\": {\n        \"tip\": {}\n      },\n      \"amount_received\": 6000,\n      \"application\": null,\n      \"application_fee_amount\": null,\n      \"automatic_payment_methods\": null,\n      \"canceled_at\": null,\n      \"cancellation_reason\": null,\n      \"capture_method\": \"manual\",\n      \"client_secret\": \"pi_3USmphD9Ww5fjIs91fwjIkkl_secret_REDACTED\",\n      \"confirmation_method\": \"automatic\",\n      \"created\": 1792540361,\n      \"currency\": \"eur\",\n      \"customer\": null,\n      \"customer_account\": null,\n      \"description\": null,\n      \"excluded_payment_method_types\": null,\n      \"last_payment_error\": null,\n      \"latest_charge\": \"ch_3USmphD9Ww5fjIs91JYOi6kr\",\n      \"livemode\": false,\n      \"managed_payments\": {\n        \"enabled\": false\n      },\n      \"metadata\": {},\n      \"next_action\": null,\n      \"on_behalf_of\": null,\n      \"payment_method\": \"pm_1USmphD9Ww5fjIs9Cm15M4bK\",\n      \"payment_method_configuration_details\": null,\n      \"payment_method_options\": {\n        \"card\": {\n          \"installments\": null,\n          \"mandate_options\": null,\n          \"network\": null,\n          \"request_three_d_secure\": \"automatic\"\n        }\n      },\n      \"payment_method_types\": [\n        \"card\"\n      ],\n      \"payment_record\": null,\n      \"processing\": null,\n      \"receipt_email\": null,\n      \"review\": null,\n      \"setup_future_usage\": null,\n      \"shared_payment_granted_token\": null,\n      \"shipping\": null,\n      \"source\": null,\n      \"statement_descriptor\": null,\n      \"statement_descriptor_suffix\": null,\n      \"status\": \"succeeded\",\n      \"transfer_data\": null,\n      \"transfer_group\": null\n    },\n    \"type\": \"invalid_request_error\"\n  }\n}"
+            }
+          ]
+        },
+        {
+          "name": "Place new authorization to be voided next",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "const b = pm.response.json();\r\npm.environment.set(\"pi_id\",b.id); //save payment id as env variable\r\npm.test(\"held, not captured\",()=>pm.expect(b.status).to.eql(\"requires_capture\"));// state machine lifecycle status\r\npm.test(\"held  is 65.00\", () => pm.expect(b.amount_capturable).to.eql(6500));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [],
+            "body": {
+              "mode": "urlencoded",
+              "urlencoded": [
+                {
+                  "key": "amount",
+                  "value": "6500"
+                },
+                {
+                  "key": "currency",
+                  "value": "eur"
+                },
+                {
+                  "key": "capture_method",
+                  "value": "manual",
+                  "description": "manual = hold only. don't capture yet"
+                },
+                {
+                  "key": "payment_method",
+                  "value": "pm_card_visa",
+                  "description": "stripe's ready made test card"
+                },
+                {
+                  "key": "allowed_payment_method_types[]",
+                  "value": "card"
+                },
+                {
+                  "key": "confirm",
+                  "value": "true"
+                }
+              ]
+            },
+            "url": {
+              "raw": "{{base_url}}/payment_intents",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "payment_intents"
+              ]
+            },
+            "description": "1. create a payment request of type manual (authorize only). the server (Y's server) uses tge secret key to place a hold\n    \n2. the server then hands off the client secret to the user's app over TLS encrypted connection while the server only keeps the payment ID in the DB\n    \n3. then the user enters the card and does the 3ds if needed on the user's app. this uses the publishable key (static merchant app key) and the client secret from the user's app memory (the generated key needed fot this one payment)\n    \n4. stripe then sends the result to the server using a webhook or a lookup with the secret key and payment ID"
+          },
+          "response": []
+        },
+        {
+          "name": "Void an authorization succeeds",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "const res = pm.response;\r\nconst body = res.json();\r\npm.test(\"request succeeds with status 200\",()=>{\r\n    pm.expect(res.to.have.status(200));\r\n    });\r\npm.test(\"traceable operation with id\",()=>{\r\n    pm.expect(res.headers.get(\"Request-id\")).to.match(/^req_/);\r\n    });\r\npm.test(\"no secret key communicated\",()=>{\r\n    pm.expect(res.text()).to.not.include(pm.environment.get(\"secret_key\"));\r\n});\r\npm.test(\"state becomes voided\", () => pm.expect(body.status).to.eql(\"canceled\"));\r\npm.test(\"nothing still held\", () => pm.expect(body.amount_capturable).to.eql(0));\r\npm.test(\"nothing charged\", () => pm.expect(body.amount_received).to.eql(0));\r\npm.test(\"cancellation time logged\", () => pm.expect(body.canceled_at).to.exist);\r\n"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [],
+            "body": {
+              "mode": "urlencoded",
+              "urlencoded": []
+            },
+            "url": {
+              "raw": "{{base_url}}/payment_intents/{{pi_id}}/cancel",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "payment_intents",
+                "{{pi_id}}",
+                "cancel"
+              ]
+            },
+            "description": "Attempting to capture more than the held amount fails gracefully:\n\n- logged as a bad request (4xx) not a crash (5xx)\n    \n- has error code that points to the problematic field\n    \n- has no leaked secret ket\n    \n- nothing captured, state still authorized, actual amount can still be captured\n    \n- has request id for traceability"
+          },
+          "response": [
+            {
+              "name": "Void an authorization succeeds",
+              "originalRequest": {
+                "method": "POST",
+                "header": [],
+                "body": {
+                  "mode": "urlencoded",
+                  "urlencoded": []
+                },
+                "url": {
+                  "raw": "{{base_url}}/payment_intents/{{pi_id}}/cancel",
+                  "host": [
+                    "{{base_url}}"
+                  ],
+                  "path": [
+                    "payment_intents",
+                    "{{pi_id}}",
+                    "cancel"
+                  ]
+                }
+              },
+              "_postman_previewlanguage": "json",
+              "header": [
+                {
+                  "key": ":status",
+                  "value": "200"
+                },
+                {
+                  "key": "server",
+                  "value": "nginx"
+                },
+                {
+                  "key": "date",
+                  "value": "Wed, 21 Oct 2026 00:06:25 GMT"
+                },
+                {
+                  "key": "content-type",
+                  "value": "application/json"
+                },
+                {
+                  "key": "content-length",
+                  "value": "1580"
+                },
+                {
+                  "key": "access-control-allow-credentials",
+                  "value": "true"
+                },
+                {
+                  "key": "access-control-allow-methods",
+                  "value": "GET, HEAD, PUT, PATCH, POST, DELETE"
+                },
+                {
+                  "key": "access-control-allow-origin",
+                  "value": "*"
+                },
+                {
+                  "key": "access-control-expose-headers",
+                  "value": "Request-Id, Stripe-Manage-Version, Stripe-Should-Retry, X-Stripe-External-Auth-Required, X-Stripe-Privileged-Session-Required"
+                },
+                {
+                  "key": "access-control-max-age",
+                  "value": "300"
+                },
+                {
+                  "key": "cache-control",
+                  "value": "no-cache, no-store"
+                },
+                {
+                  "key": "content-security-policy",
+                  "value": "base-uri 'none'; default-src 'none'; form-action 'none'; frame-ancestors 'none'; img-src 'self'; script-src 'self' 'report-sample'; style-src 'self'; worker-src 'none'; upgrade-insecure-requests; report-uri https://q.stripe.com/csp-violation?q=aqICA1_G4snrokYpkoCpvGc0mMwBIK7ZhKPFDpc1Cco77Ij1fly4gVJmjb_BWz7c_-vWhVcst4oKDfrl; report-to csp"
+                },
+                {
+                  "key": "idempotency-key",
+                  "value": "a1b457ca-7b95-4af1-bc57-f3e52fb321a7"
+                },
+                {
+                  "key": "original-request",
+                  "value": "req_pSl5qdHaknd4Wj"
+                },
+                {
+                  "key": "report-to",
+                  "value": "{\"group\":\"csp\",\"max_age\":8640,\"endpoints\":[{\"url\":\"https://q.stripe.com/csp-report-v2?q=aqICA1_G4snrokYpkoCpvGc0mMwBIK7ZhKPFDpc1Cco77Ij1fly4gVJmjb_BWz7c_-vWhVcst4oKDfrl&t=1\"}],\"include_subdomains\":true}"
+                },
+                {
+                  "key": "reporting-endpoints",
+                  "value": "csp=\"https://q.stripe.com/csp-report-v2?q=aqICA1_G4snrokYpkoCpvGc0mMwBIK7ZhKPFDpc1Cco77Ij1fly4gVJmjb_BWz7c_-vWhVcst4oKDfrl&t=1\""
+                },
+                {
+                  "key": "request-id",
+                  "value": "req_pSl5qdHaknd4Wj"
+                },
+                {
+                  "key": "stripe-should-retry",
+                  "value": "false"
+                },
+                {
+                  "key": "stripe-version",
+                  "value": "2026-09-30.endive"
+                },
+                {
+                  "key": "vary",
+                  "value": "Origin"
+                },
+                {
+                  "key": "x-stripe-priority-routing-enabled",
+                  "value": "true"
+                },
+                {
+                  "key": "x-stripe-routing-context-priority-tier",
+                  "value": "api-testmode"
+                },
+                {
+                  "key": "x-wc",
+                  "value": "3c3"
+                },
+                {
+                  "key": "strict-transport-security",
+                  "value": "max-age=63072000; includeSubDomains; preload"
+                }
+              ],
+              "cookie": [],
+              "body": "{\n  \"id\": \"pi_3USn2jD9Ww5fjIs90pLplz7C\",\n  \"object\": \"payment_intent\",\n  \"allowed_payment_method_types\": [\n    \"card\"\n  ],\n  \"amount\": 6500,\n  \"amount_capturable\": 0,\n  \"amount_details\": {\n    \"tip\": {}\n  },\n  \"amount_received\": 0,\n  \"application\": null,\n  \"application_fee_amount\": null,\n  \"automatic_payment_methods\": null,\n  \"canceled_at\": 1792541184,\n  \"cancellation_reason\": null,\n  \"capture_method\": \"manual\",\n  \"client_secret\": \"pi_3USn2jD9Ww5fjIs90pLplz7C_secret_REDACTED\",\n  \"confirmation_method\": \"automatic\",\n  \"created\": 1792541169,\n  \"currency\": \"eur\",\n  \"customer\": null,\n  \"customer_account\": null,\n  \"description\": null,\n  \"excluded_payment_method_types\": null,\n  \"last_payment_error\": null,\n  \"latest_charge\": \"ch_3USn2jD9Ww5fjIs90qeF3gkS\",\n  \"livemode\": false,\n  \"managed_payments\": {\n    \"enabled\": false\n  },\n  \"metadata\": {},\n  \"next_action\": null,\n  \"on_behalf_of\": null,\n  \"payment_method\": \"pm_1USn2jD9Ww5fjIs9n1bkEfnD\",\n  \"payment_method_configuration_details\": null,\n  \"payment_method_options\": {\n    \"card\": {\n      \"installments\": null,\n      \"mandate_options\": null,\n      \"network\": null,\n      \"request_three_d_secure\": \"automatic\"\n    }\n  },\n  \"payment_method_types\": [\n    \"card\"\n  ],\n  \"payment_record\": null,\n  \"processing\": null,\n  \"receipt_email\": null,\n  \"review\": null,\n  \"setup_future_usage\": null,\n  \"shared_payment_granted_token\": null,\n  \"shipping\": null,\n  \"source\": null,\n  \"statement_descriptor\": null,\n  \"statement_descriptor_suffix\": null,\n  \"status\": \"canceled\",\n  \"transfer_data\": null,\n  \"transfer_group\": null\n}"
+            }
+          ]
+        },
+        {
+          "name": "Capture a voided authorization fails",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "const res = pm.response;\r\nconst body = res.json();\r\npm.test(\"4xx (client error) not 5xx (server error/crash)\",()=>{\r\n    pm.expect(res.code).to.be.within(400,499)\r\n    });\r\npm.test(\"error code and message\",()=>{\r\n    pm.expect(body.error).to.exist;\r\n    pm.expect(body.error.code).to.be.a(\"string\");\r\n    pm.expect(body.error.message).to.be.a(\"string\").and.not.empty;\r\n    });\r\npm.test(\"traceable operation with id\",()=>{\r\n    pm.expect(res.headers.get(\"Request-id\")).to.match(/^req_/);\r\n    });\r\npm.test(\"no secret key communicated\",()=>{\r\n    pm.expect(res.text()).to.not.include(pm.environment.get(\"secret_key\"));\r\n});\r\npm.test(\"exact error code\", () => pm.expect(body.error.code).to.eql(\"payment_intent_unexpected_state\"));\r\npm.test(\"state still cancelled\", () => pm.expect(body.error.payment_intent.status).to.eql(\"canceled\"));\r\npm.test(\"0 held\", () => pm.expect(body.error.payment_intent.amount_capturable).to.eql(0));\r\npm.test(\"nothing charged\", () => pm.expect(body.error.payment_intent.amount_received).to.eql(0));\r\n"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [],
+            "body": {
+              "mode": "urlencoded",
+              "urlencoded": [
+                {
+                  "key": "amount",
+                  "value": "7000"
+                }
+              ]
+            },
+            "url": {
+              "raw": "{{base_url}}/payment_intents/{{pi_id}}/capture",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "payment_intents",
+                "{{pi_id}}",
+                "capture"
+              ]
+            },
+            "description": "Attempting to capture more than the held amount fails gracefully:\n\n- logged as a bad request (4xx) not a crash (5xx)\n    \n- has error code that points to the problematic field\n    \n- has no leaked secret ket\n    \n- nothing captured, state still authorized, actual amount can still be captured\n    \n- has request id for traceability"
+          },
+          "response": [
+            {
+              "name": "Capture a voided authorization fails",
+              "originalRequest": {
+                "method": "POST",
+                "header": [],
+                "body": {
+                  "mode": "urlencoded",
+                  "urlencoded": [
+                    {
+                      "key": "amount",
+                      "value": "7000"
+                    }
+                  ]
+                },
+                "url": {
+                  "raw": "{{base_url}}/payment_intents/{{pi_id}}/capture",
+                  "host": [
+                    "{{base_url}}"
+                  ],
+                  "path": [
+                    "payment_intents",
+                    "{{pi_id}}",
+                    "capture"
+                  ]
+                }
+              },
+              "_postman_previewlanguage": "json",
+              "header": [
+                {
+                  "key": ":status",
+                  "value": "400"
+                },
+                {
+                  "key": "server",
+                  "value": "nginx"
+                },
+                {
+                  "key": "date",
+                  "value": "Wed, 21 Oct 2026 00:08:11 GMT"
+                },
+                {
+                  "key": "content-type",
+                  "value": "application/json"
+                },
+                {
+                  "key": "content-length",
+                  "value": "2346"
+                },
+                {
+                  "key": "access-control-allow-credentials",
+                  "value": "true"
+                },
+                {
+                  "key": "access-control-allow-methods",
+                  "value": "GET, HEAD, PUT, PATCH, POST, DELETE"
+                },
+                {
+                  "key": "access-control-allow-origin",
+                  "value": "*"
+                },
+                {
+                  "key": "access-control-expose-headers",
+                  "value": "Request-Id, Stripe-Manage-Version, Stripe-Should-Retry, X-Stripe-External-Auth-Required, X-Stripe-Privileged-Session-Required"
+                },
+                {
+                  "key": "access-control-max-age",
+                  "value": "300"
+                },
+                {
+                  "key": "cache-control",
+                  "value": "no-cache, no-store"
+                },
+                {
+                  "key": "content-security-policy",
+                  "value": "base-uri 'none'; default-src 'none'; form-action 'none'; frame-ancestors 'none'; img-src 'self'; script-src 'self' 'report-sample'; style-src 'self'; worker-src 'none'; upgrade-insecure-requests; report-uri https://q.stripe.com/csp-violation?q=1jG86XWBKiO9quwzWnm0TOTbMu1I-gjzNp5lfYfZd_TQ2xfAtlbDD12PCZYq3r16JaN0NW4UhZvW4G1C; report-to csp"
+                },
+                {
+                  "key": "idempotency-key",
+                  "value": "fa14442f-c50f-4fd4-9c90-57be72d10f4e"
+                },
+                {
+                  "key": "original-request",
+                  "value": "req_3f0kXNoOctgpvG"
+                },
+                {
+                  "key": "report-to",
+                  "value": "{\"group\":\"csp\",\"max_age\":8640,\"endpoints\":[{\"url\":\"https://q.stripe.com/csp-report-v2?q=1jG86XWBKiO9quwzWnm0TOTbMu1I-gjzNp5lfYfZd_TQ2xfAtlbDD12PCZYq3r16JaN0NW4UhZvW4G1C&t=1\"}],\"include_subdomains\":true}"
+                },
+                {
+                  "key": "reporting-endpoints",
+                  "value": "csp=\"https://q.stripe.com/csp-report-v2?q=1jG86XWBKiO9quwzWnm0TOTbMu1I-gjzNp5lfYfZd_TQ2xfAtlbDD12PCZYq3r16JaN0NW4UhZvW4G1C&t=1\""
+                },
+                {
+                  "key": "request-id",
+                  "value": "req_3f0kXNoOctgpvG"
+                },
+                {
+                  "key": "stripe-should-retry",
+                  "value": "false"
+                },
+                {
+                  "key": "stripe-version",
+                  "value": "2026-09-30.endive"
+                },
+                {
+                  "key": "vary",
+                  "value": "Origin"
+                },
+                {
+                  "key": "x-stripe-priority-routing-enabled",
+                  "value": "true"
+                },
+                {
+                  "key": "x-stripe-routing-context-priority-tier",
+                  "value": "api-testmode"
+                },
+                {
+                  "key": "x-wc",
+                  "value": "3c3"
+                },
+                {
+                  "key": "strict-transport-security",
+                  "value": "max-age=63072000; includeSubDomains; preload"
+                }
+              ],
+              "cookie": [],
+              "body": "{\n  \"error\": {\n    \"code\": \"payment_intent_unexpected_state\",\n    \"doc_url\": \"https://stripe.com/docs/error-codes/payment-intent-unexpected-state\",\n    \"message\": \"This PaymentIntent could not be captured because it has a status of canceled. Only a PaymentIntent with one of the following statuses may be captured: requires_capture. (This is an unclaimed Stripe sandbox. Dashboard links in this error message will not work until the sandbox is claimed.)\",\n    \"payment_intent\": {\n      \"id\": \"pi_3USn2jD9Ww5fjIs90pLplz7C\",\n      \"object\": \"payment_intent\",\n      \"allowed_payment_method_types\": [\n        \"card\"\n      ],\n      \"amount\": 6500,\n      \"amount_capturable\": 0,\n      \"amount_details\": {\n        \"tip\": {}\n      },\n      \"amount_received\": 0,\n      \"application\": null,\n      \"application_fee_amount\": null,\n      \"automatic_payment_methods\": null,\n      \"canceled_at\": 1792541184,\n      \"cancellation_reason\": null,\n      \"capture_method\": \"manual\",\n      \"client_secret\": \"pi_3USn2jD9Ww5fjIs90pLplz7C_secret_REDACTED\",\n      \"confirmation_method\": \"automatic\",\n      \"created\": 1792541169,\n      \"currency\": \"eur\",\n      \"customer\": null,\n      \"customer_account\": null,\n      \"description\": null,\n      \"excluded_payment_method_types\": null,\n      \"last_payment_error\": null,\n      \"latest_charge\": \"ch_3USn2jD9Ww5fjIs90qeF3gkS\",\n      \"livemode\": false,\n      \"managed_payments\": {\n        \"enabled\": false\n      },\n      \"metadata\": {},\n      \"next_action\": null,\n      \"on_behalf_of\": null,\n      \"payment_method\": \"pm_1USn2jD9Ww5fjIs9n1bkEfnD\",\n      \"payment_method_configuration_details\": null,\n      \"payment_method_options\": {\n        \"card\": {\n          \"installments\": null,\n          \"mandate_options\": null,\n          \"network\": null,\n          \"request_three_d_secure\": \"automatic\"\n        }\n      },\n      \"payment_method_types\": [\n        \"card\"\n      ],\n      \"payment_record\": null,\n      \"processing\": null,\n      \"receipt_email\": null,\n      \"review\": null,\n      \"setup_future_usage\": null,\n      \"shared_payment_granted_token\": null,\n      \"shipping\": null,\n      \"source\": null,\n      \"statement_descriptor\": null,\n      \"statement_descriptor_suffix\": null,\n      \"status\": \"canceled\",\n      \"transfer_data\": null,\n      \"transfer_group\": null\n    },\n    \"type\": \"invalid_request_error\"\n  }\n}"
+            }
+          ]
+        },
+        {
+          "name": "Place new authorization to be captured then cancelled",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "const b = pm.response.json();\r\npm.environment.set(\"pi_id\",b.id); //save payment id as env variable\r\npm.test(\"held, not captured\",()=>pm.expect(b.status).to.eql(\"requires_capture\"));// state machine lifecycle status\r\npm.test(\"held  is 65.00\", () => pm.expect(b.amount_capturable).to.eql(6500));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [],
+            "body": {
+              "mode": "urlencoded",
+              "urlencoded": [
+                {
+                  "key": "amount",
+                  "value": "6500"
+                },
+                {
+                  "key": "currency",
+                  "value": "eur"
+                },
+                {
+                  "key": "capture_method",
+                  "value": "manual",
+                  "description": "manual = hold only. don't capture yet"
+                },
+                {
+                  "key": "payment_method",
+                  "value": "pm_card_visa",
+                  "description": "stripe's ready made test card"
+                },
+                {
+                  "key": "allowed_payment_method_types[]",
+                  "value": "card"
+                },
+                {
+                  "key": "confirm",
+                  "value": "true"
+                }
+              ]
+            },
+            "url": {
+              "raw": "{{base_url}}/payment_intents",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "payment_intents"
+              ]
+            },
+            "description": "1. create a payment request of type manual (authorize only). the server (Y's server) uses tge secret key to place a hold\n    \n2. the server then hands off the client secret to the user's app over TLS encrypted connection while the server only keeps the payment ID in the DB\n    \n3. then the user enters the card and does the 3ds if needed on the user's app. this uses the publishable key (static merchant app key) and the client secret from the user's app memory (the generated key needed fot this one payment)\n    \n4. stripe then sends the result to the server using a webhook or a lookup with the secret key and payment ID"
+          },
+          "response": []
+        },
+        {
+          "name": "Full capture succeeds",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "const res = pm.response;\r\nconst body = res.json();\r\npm.test(\"request status 200\",()=>{\r\n    pm.expect(res.to.have.status(200));\r\n    });\r\npm.test(\"traceable operation with id\",()=>{\r\n    pm.expect(res.headers.get(\"Request-id\")).to.match(/^req_/);\r\n    });\r\npm.test(\"no secret key communicated\",()=>{\r\n    pm.expect(res.text()).to.not.include(pm.environment.get(\"secret_key\"));\r\n});\r\npm.test(\"state changed to succeeded\", () => pm.expect(body.status).to.eql(\"succeeded\"));\r\npm.test(\"nothing still held\", () => pm.expect(body.amount_capturable).to.eql(0));\r\npm.test(\"correct amount charged\", () => pm.expect(body.amount_received).to.eql(6500));\r\n"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [],
+            "body": {
+              "mode": "urlencoded",
+              "urlencoded": [
+                {
+                  "key": "amount",
+                  "value": "6500"
+                }
+              ]
+            },
+            "url": {
+              "raw": "{{base_url}}/payment_intents/{{pi_id}}/capture",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "payment_intents",
+                "{{pi_id}}",
+                "capture"
+              ]
+            },
+            "description": "Attempting to capture less than the held amount succeeds:\n\n- remaining held amound gets released\n    \n- paid amount is deducted from customer's balance and is traceble"
+          },
+          "response": []
+        },
+        {
+          "name": "Void a capture fails",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "const res = pm.response;\r\nconst body = res.json();\r\npm.test(\"4xx (client error) not 5xx (server error/crash)\",()=>{\r\n    pm.expect(res.code).to.be.within(400,499)\r\n    });\r\npm.test(\"no secret key communicated\",()=>{\r\n    pm.expect(res.text()).to.not.include(pm.environment.get(\"secret_key\"));\r\n});\r\npm.test(\"state still captured\", () => pm.expect(body.error.payment_intent.status).to.eql(\"succeeded\"));\r\npm.test(\"nothing still held\", () => pm.expect(body.error.payment_intent.amount_capturable).to.eql(0));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [],
+            "body": {
+              "mode": "urlencoded",
+              "urlencoded": []
+            },
+            "url": {
+              "raw": "{{base_url}}/payment_intents/{{pi_id}}/cancel",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "payment_intents",
+                "{{pi_id}}",
+                "cancel"
+              ]
+            },
+            "description": "Attempting to capture more than the held amount fails gracefully:\n\n- logged as a bad request (4xx) not a crash (5xx)\n    \n- has error code that points to the problematic field\n    \n- has no leaked secret ket\n    \n- nothing captured, state still authorized, actual amount can still be captured\n    \n- has request id for traceability"
+          },
+          "response": [
+            {
+              "name": "Void a capture fails",
+              "originalRequest": {
+                "method": "POST",
+                "header": [],
+                "body": {
+                  "mode": "urlencoded",
+                  "urlencoded": []
+                },
+                "url": {
+                  "raw": "{{base_url}}/payment_intents/{{pi_id}}/cancel",
+                  "host": [
+                    "{{base_url}}"
+                  ],
+                  "path": [
+                    "payment_intents",
+                    "{{pi_id}}",
+                    "cancel"
+                  ]
+                }
+              },
+              "_postman_previewlanguage": "json",
+              "header": [
+                {
+                  "key": ":status",
+                  "value": "400"
+                },
+                {
+                  "key": "server",
+                  "value": "nginx"
+                },
+                {
+                  "key": "date",
+                  "value": "Wed, 21 Oct 2026 00:28:47 GMT"
+                },
+                {
+                  "key": "content-type",
+                  "value": "application/json"
+                },
+                {
+                  "key": "content-length",
+                  "value": "2453"
+                },
+                {
+                  "key": "access-control-allow-credentials",
+                  "value": "true"
+                },
+                {
+                  "key": "access-control-allow-methods",
+                  "value": "GET, HEAD, PUT, PATCH, POST, DELETE"
+                },
+                {
+                  "key": "access-control-allow-origin",
+                  "value": "*"
+                },
+                {
+                  "key": "access-control-expose-headers",
+                  "value": "Request-Id, Stripe-Manage-Version, Stripe-Should-Retry, X-Stripe-External-Auth-Required, X-Stripe-Privileged-Session-Required"
+                },
+                {
+                  "key": "access-control-max-age",
+                  "value": "300"
+                },
+                {
+                  "key": "cache-control",
+                  "value": "no-cache, no-store"
+                },
+                {
+                  "key": "content-security-policy",
+                  "value": "base-uri 'none'; default-src 'none'; form-action 'none'; frame-ancestors 'none'; img-src 'self'; script-src 'self' 'report-sample'; style-src 'self'; worker-src 'none'; upgrade-insecure-requests; report-uri https://q.stripe.com/csp-violation?q=i0wl_OXDRE9t7uCRKBLnJeb1yIuPFfyOINelaDr1haC-GcVkys5Q---ptDs6VIGR6BX3cPnOB1zyt6B_; report-to csp"
+                },
+                {
+                  "key": "idempotency-key",
+                  "value": "945cfe51-58b6-4f35-a51f-9bf56bf84eed"
+                },
+                {
+                  "key": "original-request",
+                  "value": "req_pxQMxDOJuV7QNW"
+                },
+                {
+                  "key": "report-to",
+                  "value": "{\"group\":\"csp\",\"max_age\":8640,\"endpoints\":[{\"url\":\"https://q.stripe.com/csp-report-v2?q=i0wl_OXDRE9t7uCRKBLnJeb1yIuPFfyOINelaDr1haC-GcVkys5Q---ptDs6VIGR6BX3cPnOB1zyt6B_&t=1\"}],\"include_subdomains\":true}"
+                },
+                {
+                  "key": "reporting-endpoints",
+                  "value": "csp=\"https://q.stripe.com/csp-report-v2?q=i0wl_OXDRE9t7uCRKBLnJeb1yIuPFfyOINelaDr1haC-GcVkys5Q---ptDs6VIGR6BX3cPnOB1zyt6B_&t=1\""
+                },
+                {
+                  "key": "request-id",
+                  "value": "req_pxQMxDOJuV7QNW"
+                },
+                {
+                  "key": "stripe-should-retry",
+                  "value": "false"
+                },
+                {
+                  "key": "stripe-version",
+                  "value": "2026-09-30.endive"
+                },
+                {
+                  "key": "vary",
+                  "value": "Origin"
+                },
+                {
+                  "key": "x-stripe-priority-routing-enabled",
+                  "value": "true"
+                },
+                {
+                  "key": "x-stripe-routing-context-priority-tier",
+                  "value": "api-testmode"
+                },
+                {
+                  "key": "x-wc",
+                  "value": "3c3"
+                },
+                {
+                  "key": "strict-transport-security",
+                  "value": "max-age=63072000; includeSubDomains; preload"
+                }
+              ],
+              "cookie": [],
+              "body": "{\n  \"error\": {\n    \"code\": \"payment_intent_unexpected_state\",\n    \"doc_url\": \"https://stripe.com/docs/error-codes/payment-intent-unexpected-state\",\n    \"message\": \"You cannot cancel this PaymentIntent because it has a status of succeeded. Only a PaymentIntent with one of the following statuses may be canceled: requires_payment_method, requires_capture, requires_reauthorization, requires_confirmation, requires_action, expired, processing. (This is an unclaimed Stripe sandbox. Dashboard links in this error message will not work until the sandbox is claimed.)\",\n    \"payment_intent\": {\n      \"id\": \"pi_3USnOKD9Ww5fjIs90DEOFBwj\",\n      \"object\": \"payment_intent\",\n      \"allowed_payment_method_types\": [\n        \"card\"\n      ],\n      \"amount\": 6500,\n      \"amount_capturable\": 0,\n      \"amount_details\": {\n        \"tip\": {}\n      },\n      \"amount_received\": 6500,\n      \"application\": null,\n      \"application_fee_amount\": null,\n      \"automatic_payment_methods\": null,\n      \"canceled_at\": null,\n      \"cancellation_reason\": null,\n      \"capture_method\": \"manual\",\n      \"client_secret\": \"pi_3USnOKD9Ww5fjIs90DEOFBwj_secret_REDACTED\",\n      \"confirmation_method\": \"automatic\",\n      \"created\": 1792542508,\n      \"currency\": \"eur\",\n      \"customer\": null,\n      \"customer_account\": null,\n      \"description\": null,\n      \"excluded_payment_method_types\": null,\n      \"last_payment_error\": null,\n      \"latest_charge\": \"ch_3USnOKD9Ww5fjIs905YmIjbb\",\n      \"livemode\": false,\n      \"managed_payments\": {\n        \"enabled\": false\n      },\n      \"metadata\": {},\n      \"next_action\": null,\n      \"on_behalf_of\": null,\n      \"payment_method\": \"pm_1USnOKD9Ww5fjIs9KpvWk8dw\",\n      \"payment_method_configuration_details\": null,\n      \"payment_method_options\": {\n        \"card\": {\n          \"installments\": null,\n          \"mandate_options\": null,\n          \"network\": null,\n          \"request_three_d_secure\": \"automatic\"\n        }\n      },\n      \"payment_method_types\": [\n        \"card\"\n      ],\n      \"payment_record\": null,\n      \"processing\": null,\n      \"receipt_email\": null,\n      \"review\": null,\n      \"setup_future_usage\": null,\n      \"shared_payment_granted_token\": null,\n      \"shipping\": null,\n      \"source\": null,\n      \"statement_descriptor\": null,\n      \"statement_descriptor_suffix\": null,\n      \"status\": \"succeeded\",\n      \"transfer_data\": null,\n      \"transfer_group\": null\n    },\n    \"type\": \"invalid_request_error\"\n  }\n}"
+            }
+          ]
+        }
+      ],
+      "description": "**Variable prefixes:**\n\n- pi_ payment variables\n    \n- pm_ payment method variables\n    \n- cus_ customer variables\n    \n- ch_ charge variables\n    \n- re_ refund variables"
+    }
+  ],
+  "auth": {
+    "type": "bearer",
+    "bearer": [
+      {
+        "key": "token",
+        "value": "{{secret_key}}",
+        "type": "string"
+      }
+    ]
+  }
+}

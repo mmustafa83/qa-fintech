@@ -1,0 +1,4 @@
+.env
+*.postman_environment.json
+__pycache__/
+.venv/
